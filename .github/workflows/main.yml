@@ -1,4 +1,4 @@
-name: CI Backend Tests (Phase 1)
+name: CI & Docker Integration
 
 # Trigger the workflow on push to main and develop branches, and on pull requests
 on:
@@ -28,3 +28,31 @@ jobs:
       # Build and test with Maven
       - name: Build and test with Maven
         run: mvn clean verify --file ./simple-api/pom.xml
+
+  build-and-push-docker:
+    name: Build and Push Docker Images
+    needs: test-backend
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./simple-api
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build and Push Database Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./database
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build and Push Httpd Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./http-server
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
