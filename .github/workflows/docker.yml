@@ -1,0 +1,50 @@
+name: Docker Integration (Phase 2)
+
+# Trigger on push (or pull request) to main and develop branches.
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # This job runs after the backend test job (from main.yml) passes.
+  build-and-push-docker:
+    name: Build and Push Docker Images
+    needs: test-backend
+    runs-on: ubuntu-24.04
+    steps:
+      # Checkout the repository code.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Log in to Docker Hub using secrets.
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      # Build and (conditionally) push the backend image.
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./simple-api
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
+          # Push only on the main branch.
+          push: ${{ github.ref == 'refs/heads/main' }}
+
+      # Build and conditionally push the database image.
+      - name: Build and Push Database Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./database
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
+          # Push only on the main branch.
+          push: ${{ github.ref == 'refs/heads/main' }}
+
+      # Build and conditionally push the httpd image.
+      - name: Build and Push Httpd Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./http-server
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
+          # Push only on the main branch.
+          push: ${{ github.ref == 'refs/heads/main' }}
