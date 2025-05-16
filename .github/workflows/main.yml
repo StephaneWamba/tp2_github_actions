@@ -1,3 +1,5 @@
+# Trigger: workflow run for syntax check
+
 name: CI & Docker Integration
 
 # Trigger the workflow on push to main and develop branches, and on pull requests
